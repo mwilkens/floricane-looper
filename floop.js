@@ -35,6 +35,12 @@ class Sample {
             onloaderror: function(id,e){
                 console.log("Failed to load sample ", id);
                 console.log("Error: ", e);
+            },
+            onfade: function(){
+                // if we're fading to zero, pause playback
+                if( this.volume() == 0){
+                    this.pause();
+                }
             }
         });
     }
@@ -58,11 +64,17 @@ class Sample {
         crossfade(this.a, this.b, true);
     }
 
+    // stops both samples and unloads them
     stop(){
         this.a.stop();
         this.b.stop();
         this.a.unload();
         this.b.unload();
+    }
+
+    // if either are playing, then this returns true
+    playing(){
+        return this.a.playing() || this.b.playing();
     }
 
     fadeIn(callback){
@@ -77,9 +89,11 @@ class Sample {
 
     fadeOut(callback){
         if(this.a.playing()){
+            // fade and pause when done
             this.a.fade(1,0,1000);
             this.a.onfade = callback;
         } else {
+            // fade and pause when done
             this.b.fade(1,0,1000);
             this.b.onfade = callback; 
         }
@@ -108,11 +122,16 @@ class Set {
 
                 for(var j = 0,l; l = s.samples[j]; j++){
                     // Queue up the samples
-                    this.samples[i] = new Sample(l.a, l.b);
-                    // Load them into memory
-                    //this.samples[i].load();
-                    console.log("Loading Sample a: ", l.a);
-                    console.log("Loading Sample b: ", l.b);
+                    // make sure that the ID is a number
+                    if (typeof(l.id) == typeof(1)){
+                        this.samples[l.id] = new Sample(l.a, l.b);
+                        // Load them into memory
+                        //this.samples[i].load();
+                        console.log("Loading Sample a: ", l.a);
+                        console.log("Loading Sample b: ", l.b);
+                    } else {
+                        alert("Sample ID Error");
+                    }
                 }
             }
         }
@@ -144,7 +163,12 @@ class Set {
     pause(){
         console.log("Pausing...");
         this.state = States.Paused;
-        this.samples[this.currSampleIdx].fadeOut();
+        // pause all of them if they're playing
+        for(var i=0,s;s=this.samples[i];i++){
+            if(s.playing()){
+                s.fadeOut();
+            }
+        }
     }
 
     resume(){
