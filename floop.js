@@ -224,33 +224,37 @@ function pageLoaded(){
 
     // Event Listener for Keypresses
     document.addEventListener('keydown', function(event) {
-        if (event.keyCode == 37) { // Left key
-            console.log("Left Key Pressed...");
-            sl.prev();
-        }
-        if (event.keyCode == 39) { // Right key
-            console.log("Right Key Pressed...");
-            sl.next();
-        }
-        if (event.keyCode == 13) { // Enter key
-            console.log("Enter Key Pressed...");
-            sl.play();
-        }
-        if (event.keyCode == 32) { // Space key
-            console.log("Space Key Pressed...");
-            if(sl.state == States.Playing){
-                sl.pause();
-            }
-            else if (sl.state == States.Paused){
-                sl.resume();
-            }
-            else {
-                alert("Paused while looper is off.");
-            }
-        }
-        if (event.keyCode == 81) { // q key
-            console.log("Q Key Pressed...");
-            sl.reset();
+        switch(event.keyCode){
+            case 37: // Left Key
+                console.log("Left Key Pressed...");
+                sl.prev();
+                break;
+            case 39: // Right Key
+                console.log("Right Key Pressed...");
+                sl.next();
+                break;
+            case 13: // Enter Key
+                console.log("Enter Key Pressed...");
+                sl.play();
+                break;
+            case 32: // Space Key
+                console.log("Space Key Pressed...");
+                if(sl.state == States.Playing){
+                    sl.pause();
+                }
+                else if (sl.state == States.Paused){
+                    sl.resume();
+                }
+                else {
+                    alert("Paused while looper is off.");
+                }
+                break;
+            case 81: // Q Key
+                console.log("Q Key Pressed...");
+                sl.reset();
+                break;
+            default:
+                break;
         }
     });
 
