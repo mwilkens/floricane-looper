@@ -35,12 +35,6 @@ class Sample {
             onloaderror: function(id,e){
                 console.log("Failed to load sample ", id);
                 console.log("Error: ", e);
-            },
-            onfade: function(){
-                // if we're fading to zero, pause playback
-                if( this.volume() == 0){
-                    this.pause();
-                }
             }
         });
     }
@@ -77,25 +71,27 @@ class Sample {
         return this.a.playing() || this.b.playing();
     }
 
-    fadeIn(callback){
+    fadeIn(){
         if(this.a.playing()){
             this.a.fade(0,1,1000);
-            this.a.onfade = callback;
         } else {
             this.b.fade(0,1,1000);
-            this.b.onfade = callback; 
         }
     }
 
-    fadeOut(callback){
+    fadeOut(){
         if(this.a.playing()){
             // fade and pause when done
             this.a.fade(1,0,1000);
-            this.a.onfade = callback;
+            this.a.once("fade", function(){
+                this.a.pause();
+            });
         } else {
             // fade and pause when done
             this.b.fade(1,0,1000);
-            this.b.onfade = callback; 
+            this.b.once("fade", function(){
+                this.b.pause();
+            });
         }
     }
 }
@@ -111,7 +107,9 @@ class Set {
             alert("No set data given...");
 
         this.state = States.Off;
-        this.currSampleIdx = 0;
+        this.currSId = 0;
+        this.isplaying = null;
+        this.maxId = 0;
     }
 
     load(name){
@@ -129,6 +127,11 @@ class Set {
                         //this.samples[i].load();
                         console.log("Loading Sample a: ", l.a);
                         console.log("Loading Sample b: ", l.b);
+
+                        // keep track of the largest ID
+                        if( l.id > this.maxId){
+                            this.maxId = l.id;
+                        }
                     } else {
                         alert("Sample ID Error");
                     }
@@ -139,25 +142,28 @@ class Set {
 
     play(){
         this.state = States.Playing;
-        this.samples[this.currSampleIdx].start();
+        this.isplaying = this.samples[this.currSID];
+        this.isplaying.start();
     }
 
     next(){
-        if(this.currSampleIdx < this.samples.length)
-            this.currSampleIdx++;
+        if(this.currSId < this.maxId)
+            this.currSId++;
         else
             return;
 
-        crossfade(this.samples[this.currSampleIdx-1],this.samples[this.currSampleIdx]);
+        crossfade(this.isplaying, this.samples[this.currSId]);
+        this.isplaying = this.samples[this.currSId];
     }
 
     prev(){
-        if(this.currSampleIdx > 0)
-            this.currSampleIdx--;
+        if(this.currSId > 0)
+            this.currSId--;
         else
             return;
 
-        crossfade(this.samples[this.currSampleIdx+1],this.samples[this.currSampleIdx]);
+        crossfade(this.isplaying, this.samples[this.currSId]);
+        this.isplaying = this.samples[this.currSId];
     }
 
     pause(){
@@ -178,20 +184,20 @@ class Set {
             return;
         }
         this.state = States.Playing;
-        this.samples[this.currSampleIdx].fadeIn();
+        this.isplaying.fadeIn();
     }
 
     reset(){
         console.log("Resetting");
         this.state = States.Off;
-        this.samples[this.currSampleIdx].fadeOut();
+        this.samples[this.currSId].fadeOut();
 
         // stop all of the samples
         for(var i=0,s;s=this.samples[i];i++){
             s.stop();
         }
 
-        this.currSampleIdx = 0;
+        this.currSId = 0;
     }
     
     get state(){
