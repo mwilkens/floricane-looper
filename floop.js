@@ -18,6 +18,7 @@ createSampleInstance = function(files, toloop=false){
         },
         onplay: function(id){
             console.log("Playing Sample with ID ", id);
+            document.getElementById("file").innerHTML = files;
         },
         onplayerror: function(id,e) {
             console.log("Failed to play sample ", id);
@@ -185,6 +186,7 @@ class Set {
         this.sPlaying.unload();
 
         this.sID = 1;
+        document.getElementById("file").innerHTML = "";
     }
     
     get state(){
@@ -193,6 +195,7 @@ class Set {
     
     set state(value){
         this._state = value;
+        document.getElementById("status").innerHTML = Object.keys(States)[this._state];
     }
 }
 
