@@ -2,43 +2,37 @@ var sets = {
     "sets": [
         {
             "name":"irn girl",
-            "samples": [
-                {
-                    "id": 1,
-                    "a": "samples/swamp1.wav",
-                    "b": "samples/swamp2.wav"
+            "samples": {
+                "1": {
+                    "a": "samples/swamp1.mp3",
+                    "b": "samples/swamp2.mp3"
                 },
-                {
-                    "id": 2,
-                    "a": "samples/waterfall1.wav",
-                    "b": "samples/waterfall2.wav"
+                "2": {
+                    "a": "samples/waterfall1.mp3",
+                    "b": "samples/waterfall2.mp3"
                 },
-                {
-                    "id": 3,
-                    "a": "samples/bird1.wav",
-                    "b": "samples/bird2.wav"
+                "3":{
+                    "a": "samples/bird1.mp3",
+                    "b": "samples/bird2.mp3"
                 }
-            ]
+            }
         },
         {
             "name":"something else",
-            "samples": [
-                {
-                    "id": 1,
-                    "a": "samples/swamp1.wav",
-                    "b": "samples/swamp2.wav"
+            "samples": {
+                "1": {
+                    "a": "samples/swamp1.mp3",
+                    "b": "samples/swamp2.mp3"
                 },
-                {
-                    "id": 2,
-                    "a": "samples/bird1.wav",
-                    "b": "samples/bird2.wav"
+                "3": {
+                    "a": "samples/waterfall1.mp3",
+                    "b": "samples/waterfall2.mp3"
                 },
-                {
-                    "id": 3,
-                    "a": "samples/waterfall1.wav",
-                    "b": "samples/waterfall2.wav"
+                "2":{
+                    "a": "samples/bird1.mp3",
+                    "b": "samples/bird2.mp3"
                 }
-            ]
+            }
         }
     ]
 }

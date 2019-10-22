@@ -6,94 +6,34 @@
  *  MIT License
  */
 
-// Allow for crossfade between two samples
-var crossfade = function(enteringInstance, leavingInstance, fromBeginning=false, duration=1000) {
-
-    if(fromBeginning){
-        // Fade in entering instance
-        enteringInstance.pos(0).play();
-        enteringInstance.fade(0, 1, this.crossfadeDuration);
-    }
-
-    // Wait for the audio end to fade out entering instance
-    // white fading in leaving instance
-    setTimeout(function(){
-        enteringInstance.fade(1, 0, this.crossfadeDuration);
-        leavingInstance.pos(0).play();
-        leavingInstance.fade(0, 1, this.crossfadeDuration);
-    }, Math.floor(enteringInstance._duration * 1000) - this.crossfadeDuration);
-}
-
-class Sample {
-
-    createSampleInstance = function(file, toloop=false){
-        return new Howl({
-            src: [file],
-            volume: 0,
-            loop: toloop,
-            preload: false,
-            onloaderror: function(id,e){
-                console.log("Failed to load sample ", id);
-                console.log("Error: ", e);
-            }
-        });
-    }
-
-    constructor( sampleA, sampleB ) {
-
-        //TODO: add option to skip sampleA
-        // Sample A doesn't loop, just moves onto the next one
-        this.a = this.createSampleInstance(sampleA);
-
-        // Sample B does loop
-        this.b = this.createSampleInstance(sampleB, true);
-
-        this.currSamp = null
-    }
-
-    start(){
-        // Just starts A, which will chain to B and loop
-        this.a.load();
-        this.b.load();
-        crossfade(this.a, this.b, true);
-    }
-
-    // stops both samples and unloads them
-    stop(){
-        this.a.stop();
-        this.b.stop();
-        this.a.unload();
-        this.b.unload();
-    }
-
-    // if either are playing, then this returns true
-    playing(){
-        return this.a.playing() || this.b.playing();
-    }
-
-    fadeIn(){
-        if(this.a.playing()){
-            this.a.fade(0,1,1000);
-        } else {
-            this.b.fade(0,1,1000);
+createSampleInstance = function(files, toloop=false){
+    return new Howl({
+        src: [files],
+        volume: 0,
+        html5: true,
+        loop: toloop,
+        preload: false,
+        onload: function(){
+            console.log("Loaded Sample");
+        },
+        onplay: function(id){
+            console.log("Playing Sample with ID ", id);
+        },
+        onplayerror: function(id,e) {
+            console.log("Failed to play sample ", id);
+            console.log("Error: ", e);
+        },
+        onpause: function(id){
+            console.log("Pausing Sample with ID ", id);
+        },
+        onstop: function(id){
+            console.log("Stopping Sample with ID ", id);
+        },
+        onloaderror: function(id,e){
+            console.log("Failed to load sample ", id);
+            console.log("Error: ", e);
         }
-    }
-
-    fadeOut(){
-        if(this.a.playing()){
-            // fade and pause when done
-            this.a.fade(1,0,1000);
-            this.a.once("fade", function(){
-                this.a.pause();
-            });
-        } else {
-            // fade and pause when done
-            this.b.fade(1,0,1000);
-            this.b.once("fade", function(){
-                this.b.pause();
-            });
-        }
-    }
+    });
 }
 
 class Set {
@@ -101,103 +41,138 @@ class Set {
     constructor(json){
         if(json != null) {
             this.data = json;
-            this.samples = [];
+            this.set = {};
         }
         else
             alert("No set data given...");
 
         this.state = States.Off;
-        this.currSId = 0;
-        this.isplaying = null;
+        this.sID = 1; // start at sample 1
+        this.sPlaying = null;
         this.maxId = 0;
+        this.fadeTime = 1000;
     }
 
-    load(name){
+    loadSamples(name){
         // cycle through each set
-        for( var i = 0,s; s = this.data.sets[i]; i++){
-            // if the name matches
-            if(s.name == name){
+        for( var i = 0,s; s = this.data.sets[i]; i++)
+            if(s.name == name) // match the set name
+                this.set = s.samples;
+    }
 
-                for(var j = 0,l; l = s.samples[j]; j++){
-                    // Queue up the samples
-                    // make sure that the ID is a number
-                    if (typeof(l.id) == typeof(1)){
-                        this.samples[l.id] = new Sample(l.a, l.b);
-                        // Load them into memory
-                        //this.samples[i].load();
-                        console.log("Loading Sample a: ", l.a);
-                        console.log("Loading Sample b: ", l.b);
-
-                        // keep track of the largest ID
-                        if( l.id > this.maxId){
-                            this.maxId = l.id;
-                        }
-                    } else {
-                        alert("Sample ID Error");
-                    }
-                }
-            }
-        }
+    setPlaying(sample){
+        this.sPlaying = sample;
     }
 
     play(){
         this.state = States.Playing;
-        this.isplaying = this.samples[this.currSID];
-        this.isplaying.start();
+
+        // Set up some temp variables for closure
+        var a = createSampleInstance(this.set[this.sID].a);
+        var b = createSampleInstance(this.set[this.sID].b, true);
+
+        // Load both of the samples
+        a.load();
+        b.load();
+
+        var fadeTime = this.fadeTime;
+
+        this.setPlaying(a);
+
+        // once sample A is done loading, play it.
+        a.once("load", function(){
+            a.play();
+            // fade in
+            a.fade(0,1,fadeTime);
+        });
+
+        // once sample A is over, then play sample B
+        a.once("end", function(){
+            b.play();
+            // fade in
+            b.fade(0,1,fadeTime);
+        });
+
+        // once we're done, make sure B is playing
+        b.once("play", this.setPlaying(b));
+    }
+
+    stop(){
+        // fade out previous sample
+        this.sPlaying.fade(1,0,this.fadeTime);
+        var s = this.sPlaying;
+        this.sPlaying.once("fade", function(){
+            s.stop();
+            s.unload();
+        });
     }
 
     next(){
-        if(this.currSId < this.maxId)
-            this.currSId++;
-        else
-            return;
+        console.log("Next loop...");
+        // check if sample id is in loop
+        if(!( this.sID++ in this.set)){
+            console.log("End of Set");
+            // fade out the playing sample
+            this.sPlaying.fade(1,0,this.fadeTime);
+        }
 
-        crossfade(this.isplaying, this.samples[this.currSId]);
-        this.isplaying = this.samples[this.currSId];
+        // stops current sample
+        this.stop();
+
+        // play next sample
+        this.play();
     }
 
     prev(){
-        if(this.currSId > 0)
-            this.currSId--;
-        else
-            return;
+        // check if sample id is in loop
+        if(!( this.sID-- in this.set)){
+            console.log("End of Set");
+            // fade out the playing sample
+            this.sPlaying.fade(1,0,this.fadeTime);
+        }
 
-        crossfade(this.isplaying, this.samples[this.currSId]);
-        this.isplaying = this.samples[this.currSId];
+        // same as in next()
+        this.stop();
+        this.play();
     }
 
     pause(){
+        // don't even bother if we're not playing
+        if(!this.sPlaying.playing()) return;
+
         console.log("Pausing...");
         this.state = States.Paused;
         // pause all of them if they're playing
-        for(var i=0,s;s=this.samples[i];i++){
-            if(s.playing()){
-                s.fadeOut();
-            }
-        }
+        this.sPlaying.fade(1,0,this.fadeTime);
+        var s = this.sPlaying; // closure variable
+        this.sPlaying.once("fade", function(){
+            s.pause();
+        });
     }
 
     resume(){
+        // don't even bother if we're playing
+        if(this.sPlaying.playing()) return;
+
         console.log("Resuming...");
         if(this.state != States.Paused){
             alert("Resumed when not paused!");
             return;
         }
         this.state = States.Playing;
-        this.isplaying.fadeIn();
+        this.sPlaying.play();
+        this.sPlaying.fade(0,1,this.fadeTime);
     }
 
     reset(){
         console.log("Resetting");
         this.state = States.Off;
-        this.samples[this.currSId].fadeOut();
 
         // stop all of the samples
-        for(var i=0,s;s=this.samples[i];i++){
-            s.stop();
-        }
+        this.sPlaying.stop();
+        this.sPlaying.unload();
 
-        this.currSId = 0;
+        this.sID = 1;
     }
     
     get state(){
@@ -220,7 +195,7 @@ var States = {
 function pageLoaded(){
     var state = States.Off;
     var sl = new Set(sets);
-    sl.load("irn girl");
+    sl.loadSamples("irn girl");
 
     // Event Listener for Keypresses
     document.addEventListener('keydown', function(event) {
