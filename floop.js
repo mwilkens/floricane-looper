@@ -49,6 +49,7 @@ class Set {
         this.state = States.Off;
         this.sID = 1; // start at sample 1
         this.sPlaying = null;
+        this.filename;
         this.maxId = 0;
         this.fadeTime = 1000;
     }
@@ -60,41 +61,52 @@ class Set {
                 this.set = s.samples;
     }
 
-    setPlaying(sample){
-        this.sPlaying = sample;
+    // Scope closure function
+    _s(s,cb){
+        return function() {
+            return cb(s);
+        }
     }
 
     play(){
         this.state = States.Playing;
 
-        // Set up some temp variables for closure
-        var a = createSampleInstance(this.set[this.sID].a);
-        var b = createSampleInstance(this.set[this.sID].b, true);
+        // Set up some temp variables for scoping
+        var fa = this.set[this.sID].a;
+        var fb = this.set[this.sID].b;
+        this.a = createSampleInstance(fa);
+        this.b = createSampleInstance(fb, true);
+
+        var self = this;
 
         // Load both of the samples
-        a.load();
-        b.load();
+        this.a.load();
+        this.b.load();
 
-        var fadeTime = this.fadeTime;
-
-        this.setPlaying(a);
+        this.sPlaying = this.a;
+        this.filename = this.set[this.sID].a;
+        console.log("Now Playing: ", this.filename);
 
         // once sample A is done loading, play it.
-        a.once("load", function(){
-            a.play();
+        this.a.once("load", function(){
+            self.a.play();
             // fade in
-            a.fade(0,1,fadeTime);
+            self.a.fade(0,1,self.fadeTime);
         });
 
         // once sample A is over, then play sample B
-        a.once("end", function(){
-            b.play();
+        this.a.once("end", function(){
+            self.b.play();
             // fade in
-            b.fade(0,1,fadeTime);
+            self.b.fade(0,1,self.fadeTime);
         });
 
         // once we're done, make sure B is playing
-        b.once("play", this.setPlaying(b));
+        this.b.once("play", function(){
+            self.sPlaying = self.b;
+            self.filename = self.set[self.sID].b;
+            console.log("Now Playing: ", self.filename);
+        });
     }
 
     stop(){
